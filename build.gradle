@@ -1,0 +1,33 @@
+buildscript {
+    ext {
+        version = '1.0'
+        group = 'com.github.rubengees'
+
+        rxJavaVersion = '2.1.2'
+        jsr305Version = '3.0.2'
+        jUnitVersion = '4.12'
+
+        deps = [
+                rxJava: "io.reactivex.rxjava2:rxjava:$rxJavaVersion",
+                jsr305: "com.google.code.findbugs:jsr305:$jsr305Version",
+                jUnit : "junit:junit:$jUnitVersion"
+        ]
+    }
+}
+
+allprojects {
+    version = rootProject.ext.version
+    group = rootProject.ext.group
+
+    repositories {
+        jcenter()
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '4.0.1'
+}
