@@ -9,6 +9,9 @@
 ## File-based project format:
 *.iws
 
+## Directory-based project format:
+*.iml
+
 ## Plugin-specific files:
 
 # IntelliJ
