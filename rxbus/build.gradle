@@ -5,6 +5,9 @@ apply plugin: "jacoco"
 
 apply plugin: 'idea'
 
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
+
 dependencies {
     api deps.rxJava
     compileOnly deps.jsr305
