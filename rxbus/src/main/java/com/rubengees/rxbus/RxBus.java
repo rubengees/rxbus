@@ -17,22 +17,17 @@ public class RxBus {
 
     /**
      * Posts the event object on the bus. Interested components can listen for all types of this event with the
-     * {@link #observe(Class)} method.
+     * {@link #register(Class)} method.
      *
      * @param event The event. Can be any class.
+     * @return If the event was delivered to at least one subscriber.
      */
-    public void post(@Nonnull final Object event) {
-        subject.onNext(event);
-    }
+    public boolean post(@Nonnull final Object event) {
+        final boolean hasObservers = subject.hasObservers();
 
-    /**
-     * Posts the message on the bus. Interested components can listen for this exact message with the
-     * {@link #observeMessages(String)} method.
-     *
-     * @param message The message.
-     */
-    public void postMessage(@Nonnull final String message) {
-        subject.onNext(message);
+        subject.onNext(event);
+
+        return hasObservers;
     }
 
     /**
@@ -45,24 +40,10 @@ public class RxBus {
      * @return The Observable.
      */
     @Nonnull
-    public <T> Observable<T> observe(@Nonnull final Class<T> eventType) {
+    public <T> Observable<T> register(@Nonnull final Class<T> eventType) {
         return subject
                 .filter(event -> event.getClass() == eventType)
                 .cast(eventType);
-    }
-
-    /**
-     * Returns an {@link Observable} which emits a notification object for each posted event as specified by the
-     * parameter. The emitted item is just a plain {@link Object} with not further information.
-     *
-     * @param message The message.
-     * @return The Observable.
-     */
-    @Nonnull
-    public Observable<Object> observeMessages(@Nonnull final String message) {
-        return subject
-                .filter(message::equals)
-                .map(event -> new Object());
     }
 
     /**

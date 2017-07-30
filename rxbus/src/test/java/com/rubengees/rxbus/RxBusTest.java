@@ -6,7 +6,7 @@ import org.junit.Test;
 
 import java.util.concurrent.CountDownLatch;
 
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 /**
  * @author Ruben Gees
@@ -24,7 +24,7 @@ public class RxBusTest {
     public void postInteger() throws InterruptedException {
         final CountDownLatch lock = new CountDownLatch(1);
 
-        bus.observe(Integer.class).subscribe(it -> countDownOrFail(lock));
+        bus.register(Integer.class).subscribe(it -> countDownOrFail(lock));
         bus.post(123);
 
         lock.await();
@@ -34,7 +34,7 @@ public class RxBusTest {
     public void postObject() throws Exception {
         final CountDownLatch lock = new CountDownLatch(1);
 
-        bus.observe(TestEvent.class).subscribe(it -> {
+        bus.register(TestEvent.class).subscribe(it -> {
             if (it.member.equals("abc")) {
                 countDownOrFail(lock);
             }
@@ -46,20 +46,10 @@ public class RxBusTest {
     }
 
     @Test(timeout = 5000L)
-    public void postMessage() throws Exception {
-        final CountDownLatch lock = new CountDownLatch(1);
-
-        bus.observeMessages("test").subscribe(it -> countDownOrFail(lock));
-        bus.postMessage("test");
-
-        lock.await();
-    }
-
-    @Test(timeout = 5000L)
     public void postMultiple() throws Exception {
         final CountDownLatch lock = new CountDownLatch(3);
 
-        bus.observe(String.class).subscribe(it -> countDownOrFail(lock));
+        bus.register(String.class).subscribe(it -> countDownOrFail(lock));
         bus.post("test");
         bus.post("test");
         bus.post("test");
@@ -71,8 +61,8 @@ public class RxBusTest {
     public void multipleSubscribers() throws Exception {
         final CountDownLatch lock = new CountDownLatch(2);
 
-        bus.observe(String.class).subscribe(it -> countDownOrFail(lock));
-        bus.observe(String.class).subscribe(it -> countDownOrFail(lock));
+        bus.register(String.class).subscribe(it -> countDownOrFail(lock));
+        bus.register(String.class).subscribe(it -> countDownOrFail(lock));
         bus.post("test");
 
         lock.await();
@@ -91,9 +81,7 @@ public class RxBusTest {
     public void noObserver() throws Exception {
         final CountDownLatch lock = new CountDownLatch(2);
 
-        bus.observe(String.class).subscribe(it -> {
-            countDownOrFail(lock);
-        });
+        bus.register(String.class).subscribe(it -> countDownOrFail(lock));
 
         bus.post("test");
         bus.post(123);
@@ -101,6 +89,18 @@ public class RxBusTest {
         bus.post(321);
 
         lock.await();
+    }
+
+    @Test
+    public void hasObservers() throws Exception {
+        bus.register(String.class).subscribe();
+
+        assertTrue(bus.post("123"));
+    }
+
+    @Test
+    public void hasNoObservers() throws Exception {
+        assertFalse(bus.post("123"));
     }
 
     private void countDownOrFail(final CountDownLatch lock) {
