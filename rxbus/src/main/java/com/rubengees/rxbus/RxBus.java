@@ -7,7 +7,7 @@ import io.reactivex.subjects.Subject;
 import javax.annotation.Nonnull;
 
 /**
- * A dead simple event bus using RxJava.
+ * A simple event bus using RxJava 2.
  *
  * @author Ruben Gees
  */
