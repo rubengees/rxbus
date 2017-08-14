@@ -5,6 +5,8 @@ import io.reactivex.subjects.PublishSubject;
 import io.reactivex.subjects.Subject;
 
 import javax.annotation.Nonnull;
+import java.util.HashMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * A simple event bus using RxJava 2.
@@ -14,20 +16,28 @@ import javax.annotation.Nonnull;
 public class RxBus {
 
     private final Subject<Object> subject = PublishSubject.create().toSerialized();
+    private final HashMap<Class<?>, Integer> registeredObservers = new HashMap<>();
+
+    private final ReentrantLock lock = new ReentrantLock();
 
     /**
      * Posts the event object on the bus. Interested components can listen for all types of this event with the
      * {@link #register(Class)} method.
      *
      * @param event The event. Can be any class.
-     * @return If the event was delivered to at least one subscriber.
+     * @return True, if the event was delivered to at least one subscriber.
      */
     public boolean post(@Nonnull final Object event) {
-        final boolean hasObservers = subject.hasObservers();
+        try {
+            lock.lock();
 
-        subject.onNext(event);
+            subject.onNext(event);
 
-        return hasObservers;
+            final Integer existingObserverAmount = registeredObservers.get(event.getClass());
+            return existingObserverAmount != null && existingObserverAmount > 0;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -43,16 +53,33 @@ public class RxBus {
     public <T> Observable<T> register(@Nonnull final Class<T> eventType) {
         return subject
                 .filter(event -> event.getClass() == eventType)
-                .cast(eventType);
-    }
+                .cast(eventType)
+                .doOnSubscribe(disposable -> {
+                    try {
+                        lock.lock();
 
-    /**
-     * Returns an {@link Observable} which emits all events on the event bus.
-     *
-     * @return The Observable.
-     */
-    @Nonnull
-    public Observable<Object> observeAll() {
-        return subject;
+                        final Integer existingObserverAmount = registeredObservers.get(eventType);
+
+                        registeredObservers.put(eventType, existingObserverAmount == null ? 1 :
+                                existingObserverAmount + 1);
+                    } finally {
+                        lock.unlock();
+                    }
+                })
+                .doOnDispose(() -> {
+                    try {
+                        lock.lock();
+
+                        final Integer existingObserverAmount = registeredObservers.get(eventType);
+
+                        if (existingObserverAmount == null || existingObserverAmount - 1 <= 0) {
+                            registeredObservers.remove(eventType);
+                        } else {
+                            registeredObservers.put(eventType, existingObserverAmount - 1);
+                        }
+                    } finally {
+                        lock.unlock();
+                    }
+                });
     }
 }

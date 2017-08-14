@@ -1,6 +1,7 @@
 package com.rubengees.rxbus;
 
 import io.reactivex.annotations.Nullable;
+import io.reactivex.disposables.Disposable;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -31,7 +32,7 @@ public class RxBusTest {
     }
 
     @Test(timeout = 5000L)
-    public void postObject() throws Exception {
+    public void postObject() throws InterruptedException {
         final CountDownLatch lock = new CountDownLatch(1);
 
         bus.register(TestEvent.class).subscribe(it -> {
@@ -46,7 +47,7 @@ public class RxBusTest {
     }
 
     @Test(timeout = 5000L)
-    public void postMultiple() throws Exception {
+    public void postMultiple() throws InterruptedException {
         final CountDownLatch lock = new CountDownLatch(3);
 
         bus.register(String.class).subscribe(it -> countDownOrFail(lock));
@@ -58,7 +59,7 @@ public class RxBusTest {
     }
 
     @Test(timeout = 5000L)
-    public void multipleSubscribers() throws Exception {
+    public void multipleSubscribers() throws InterruptedException {
         final CountDownLatch lock = new CountDownLatch(2);
 
         bus.register(String.class).subscribe(it -> countDownOrFail(lock));
@@ -69,16 +70,7 @@ public class RxBusTest {
     }
 
     @Test
-    public void observeAll() throws Exception {
-        final CountDownLatch lock = new CountDownLatch(2);
-
-        bus.observeAll().subscribe(it -> countDownOrFail(lock));
-        bus.post(new TestEvent("test"));
-        bus.post(123);
-    }
-
-    @Test
-    public void noObserver() throws Exception {
+    public void noSubscriber() throws InterruptedException {
         final CountDownLatch lock = new CountDownLatch(2);
 
         bus.register(String.class).subscribe(it -> countDownOrFail(lock));
@@ -92,14 +84,29 @@ public class RxBusTest {
     }
 
     @Test
-    public void hasObservers() throws Exception {
+    public void hasObservers() {
         bus.register(String.class).subscribe();
 
         assertTrue(bus.post("123"));
     }
 
     @Test
-    public void hasNoObservers() throws Exception {
+    public void hasNoObservers() {
+        assertFalse(bus.post("123"));
+    }
+
+    @Test
+    public void differentObservers() {
+        bus.register(String.class).subscribe();
+
+        assertFalse(bus.post(123));
+    }
+
+    @Test
+    public void dispose() {
+        final Disposable disposable = bus.register(String.class).subscribe(it -> fail());
+        disposable.dispose();
+
         assertFalse(bus.post("123"));
     }
 
